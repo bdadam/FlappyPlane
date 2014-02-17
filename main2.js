@@ -38,7 +38,7 @@
             this.ctx.drawImage(this.img, this.x, this.y);
         },
 
-        detectCollision: function() {
+        detectCollision: function(x) {
 
             if (this.y < 0 || this.y > height - this.height) {
                 return true;
@@ -51,6 +51,19 @@
                 [this.x + this.width, this.y + this.height]
             ];
 
+            var corners = [
+                [this.x, this.y + 15],
+                [this.x + this.width, this.y],
+                [this.x + this.width, this.y + this.height]
+            ];
+
+            this.ctx.beginPath();
+            this.ctx.moveTo(corners[0][0], corners[0][1]);
+            this.ctx.lineTo(corners[1][0], corners[1][1]);
+            this.ctx.lineTo(corners[2][0], corners[2][1]);
+            this.ctx.fill();
+            this.ctx.closePath();
+
             var validColors = [
                 [234, 245, 250, 255],
                 [212, 236, 246, 255],
@@ -59,13 +72,62 @@
             ];
 
 
-            for (var i = 0; i < 4; i++) {
+            function intersects(x1, y1, w1, h1, x2, y2, w2, h2) {
+                w2 += x2;
+                w1 += x1;
+                if (x2 > w1 || x1 > w2) return false;
+                h2 += y2;
+                h1 += y1;
+                if (y2 > h1 || y1 > h2) return false;
+                return true;
+            }
+
+            function ptInTriangle(p, p0, p1, p2) {
+                var A = 1/2 * (-p1[1] * p2[0] + p0[1] * (-p1[0] + p2[0]) + p0[0] * (p1[1] - p2[1]) + p1[0] * p2[1]);
+                var sign = A < 0 ? -1 : 1;
+                var s = (p0[1] * p2[0] - p0[0] * p2[1] + (p2[1] - p0[1]) * p[0] + (p0[0] - p2[0]) * p[1]) * sign;
+                var t = (p0[0] * p1[1] - p0[1] * p1[0] + (p0[1] - p1[1]) * p[0] + (p1[0] - p0[0]) * p[1]) * sign;
+
+                return s > 0 && t > 0 && (s + t) < 2 * A * sign;
+            }
+
+            for (var i = 0, l = Rock.activeRocks.length; i < l; i++) {
+                var rock = Rock.activeRocks[i];
+
+                for (var j = 0; j < corners.length; j++) {
+                    var coll = ptInTriangle(corners[j], [rock[0]-x, height], [rock[0]-x + rock[1].width/2 + 15, height - rock[2]], [rock[0]-x + rock[1].width, height]);
+                    if (coll) {
+                        return true;
+                    }
+                }
+
+                /*if (intersects(this.x, this.y, this.width, this.height,
+                           rock[0] + 15 + rock[1].width / 2 - rock[1].width/8 - x, height - rock[2], rock[1].width / 4, rock[2])) {
+                    return true;
+                }*/
+            }
+
+            /*
+            for (var i = 0, l = RockDown.activeRocks.length; i < l; i++) {
+                var rock = RockDown.activeRocks[i];
+
+                if (intersects(this.x, this.y, this.width, this.height,
+                    rock[0] + 15 + rock[1].width / 2 - rock[1].width/8 - x, 0, rock[1].width / 4, rock[2])) {
+                    return true;
+                }
+            }*/
+
+            for (var i = 0; i < corners.length; i++) {
                 var p = corners[i];
                 var d = this.ctx.getImageData(p[0], p[1], 1, 1);
                 var ok = false;
                 window.d = window.d || [];
                 window.d.push(d.data);
+                var pixel = d.data;
 
+                if (pixel[3] !== 255) {
+                    return true;
+                }
 
                 /*
                 var pixel = d.data;
@@ -180,6 +242,13 @@
             for (var i = 0, l = this.activeRocks.length; i < l; i++) {
                 var rock = this.activeRocks[i];
                 this.ctx.drawImage(rock[1], rock[0] - x, height - rock[2]);
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(rock[0] - x, height);
+                this.ctx.lineTo(rock[0] - x + rock[1].width/2 + 13, height - rock[2]);
+                this.ctx.lineTo(rock[0] - x + rock[1].width, height);
+                this.ctx.fill();
+                this.ctx.closePath();
             }
         }
     };
@@ -242,7 +311,6 @@
     }
 
     loadImages(function() {
-
         Background.init(ctx);
         Rock.init(ctx);
         RockDown.init(ctx);
@@ -275,7 +343,7 @@
             Ground.draw(x);
             Plane.draw(x, delta);
 
-            ended = Plane.detectCollision();
+            ended = Plane.detectCollision(x);
 
             lastNow = now;
         });
