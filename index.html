@@ -24,8 +24,13 @@
             position: relative;
         }
 
-        #canvas {
-            background-color: #D5EDF7;
+        canvas {
+            background-image: url(TappyPlane/PNG/background.png);
+            background-position: 0 bottom;
+            background-repeat: repeat-x;
+
+
+            /*background-color: #D5EDF7;*/
             position: absolute;
             top: 0;
             left: 0;
@@ -37,7 +42,8 @@
 <body>
     <div id="cont">
         <div id="container">
-            <canvas id="canvas"></canvas>
+            <canvas id="bg"></canvas>
+            <canvas id="scene"></canvas>
         </div>
     </div>
     <!--script src="main.js"></script-->

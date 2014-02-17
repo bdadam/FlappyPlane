@@ -26,16 +26,39 @@
         init: function(ctx) {
             this.ctx = ctx;
             this.img = images[this.srcList[Math.floor(Math.random() * this.srcList.length)]];
+
+            this.images = [
+                images[this.srcList[0]],
+                images[this.srcList[1]],
+                images[this.srcList[2]]
+            ],
+
             this.y = Math.floor(height / 2 - this.img.height / 2);
             this.width = this.img.width;
             this.height = this.img.height;
+
+            this.corners = [
+                [74, 0],
+                [this.width, 17],
+                [this.width, 65],
+                [67, this.height],
+                [20, 65],
+                [0, 18]
+            ];
+        },
+
+        clear: function() {
+            this.ctx.clearRect(this.x, this.y, this.width, this.height);
         },
 
         draw: function(x, delta) {
             var ay = 15*9.81;
             this.vy += ay * delta;
             this.y = Math.floor(this.y + this.vy * delta);
-            this.ctx.drawImage(this.img, this.x, this.y);
+
+            var img = this.images[Math.floor(x/50) % 3];
+
+            this.ctx.drawImage(img, this.x, this.y);
         },
 
         detectCollision: function(x) {
@@ -44,18 +67,23 @@
                 return true;
             }
 
-            var corners = [
-                [this.x, this.y],
-                [this.x + this.width, this.y],
-                [this.x, this.y + this.height],
-                [this.x + this.width, this.y + this.height]
-            ];
+            /*var corners = [
+                [this.x - 1, this.y - 1],
+                [this.x + this.width + 1, this.y - 1],
+                [this.x - 1, this.y + this.height + 1],
+                [this.x + this.width + 1, this.y + this.height + 1]
+            ];*/
 
-            var corners = [
-                [this.x, this.y + 15],
-                [this.x + this.width, this.y],
-                [this.x + this.width, this.y + this.height]
-            ];
+            for (var i = 0, l = this.corners.length; i < l; i++) {
+                var corner = this.corners[i];
+                var pixel = ctx.getImageData(corner[0], corner[1], 1, 1).data;
+
+                if (pixel[0] !== 0 || pixel[1] !== 0 || pixel[2] !== 0 || pixel[3] !== 0) {
+                    return true;
+                }
+            }
+
+            return false;
 
             this.ctx.beginPath();
             this.ctx.moveTo(corners[0][0], corners[0][1]);
@@ -94,6 +122,8 @@
             for (var i = 0, l = Rock.activeRocks.length; i < l; i++) {
                 var rock = Rock.activeRocks[i];
 
+                if (rock[0]-x)
+
                 for (var j = 0; j < corners.length; j++) {
                     var coll = ptInTriangle(corners[j], [rock[0]-x, height], [rock[0]-x + rock[1].width/2 + 15, height - rock[2]], [rock[0]-x + rock[1].width, height]);
                     if (coll) {
@@ -116,34 +146,6 @@
                     return true;
                 }
             }*/
-
-            for (var i = 0; i < corners.length; i++) {
-                var p = corners[i];
-                var d = this.ctx.getImageData(p[0], p[1], 1, 1);
-                var ok = false;
-                window.d = window.d || [];
-                window.d.push(d.data);
-                var pixel = d.data;
-
-                if (pixel[3] !== 255) {
-                    return true;
-                }
-
-                /*
-                var pixel = d.data;
-
-                for (var i = 0, l = validColors.length; i < l; i++) {
-                    var color = validColors[i];
-                    if (Math.abs(color[0] - pixel[0]) < 5 && Math.abs(color[1] - pixel[1]) < 5 && Math.abs(color[2] - pixel[2]) < 5) {
-                        ok = true;
-                        break;
-                    }
-                }
-
-                if (!ok) {
-                    return true;
-                }*/
-            }
         }
     };
 
@@ -168,7 +170,12 @@
 
         init: function(ctx) {
             this.width = images[this.srcList[0]].width;
+            this.height = images[this.srcList[0]].height;
             this.ctx = ctx;
+        },
+
+        clear: function() {
+            this.ctx.clearRect(0, height - this.height, this.width, this.height);
         },
 
         draw: function(x) {
@@ -209,7 +216,7 @@
             var n = Math.ceil(width / this.img.width) + 1;
 
             for (var i = 0; i < n; i++) {
-                this.ctx.drawImage(this.img, i * this.img.width - (x % this.img.width), height - this.img.height);
+                //this.ctx.drawImage(this.img, i * this.img.width - (x % this.img.width), height - this.img.height);
             }
         }
     };
@@ -242,13 +249,6 @@
             for (var i = 0, l = this.activeRocks.length; i < l; i++) {
                 var rock = this.activeRocks[i];
                 this.ctx.drawImage(rock[1], rock[0] - x, height - rock[2]);
-
-                this.ctx.beginPath();
-                this.ctx.moveTo(rock[0] - x, height);
-                this.ctx.lineTo(rock[0] - x + rock[1].width/2 + 13, height - rock[2]);
-                this.ctx.lineTo(rock[0] - x + rock[1].width, height);
-                this.ctx.fill();
-                this.ctx.closePath();
             }
         }
     };
@@ -311,7 +311,7 @@
     }
 
     loadImages(function() {
-        Background.init(ctx);
+        //Background.init(bgctx);
         Rock.init(ctx);
         RockDown.init(ctx);
         Ground.init(ctx);
@@ -325,6 +325,8 @@
         var delta = 0;
         var ended = false;
 
+        var frameCount = 0;
+
         raf(function draw() {
             if (ended) {
                 return;
@@ -336,16 +338,25 @@
             delta = (lastNow - now) / 1000;
             x = Math.floor((now - startTime) / 1000 * vx);
 
-            //ctx.clearRect(0, 0, width, height);
-            Background.draw(x);
+            //Plane.clear();
+            //Ground.clear();
+
+            ctx.clearRect(0, 0, width, height);
+            //Background.draw(x);
             Rock.draw(x);
             RockDown.draw(x);
             Ground.draw(x);
             Plane.draw(x, delta);
 
-            ended = Plane.detectCollision(x);
+
+            if (frameCount % 2 === 0) {
+                ended = Plane.detectCollision(x);
+            }
 
             lastNow = now;
+            frameCount++;
+
+            canvas.style.backgroundPosition = (-x * 0.65) + 'px bottom';
         });
     });
 }());

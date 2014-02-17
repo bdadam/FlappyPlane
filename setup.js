@@ -1,10 +1,14 @@
-var canvas = document.getElementById('canvas');
+var canvas = document.getElementById('scene');
+var bgCanvas = document.getElementById('bg');
+
 var ctx = canvas.getContext('2d');
+var bgctx = bgCanvas.getContext('2d');
+
 var width, height;
 
 window.onresize = function() {
-    canvas.width = width = canvas.parentNode.clientWidth;
-    canvas.height = height = 480; //canvas.parentNode.clientHeight;
+    bgCanvas.width = canvas.width = width = canvas.parentNode.clientWidth;
+    bgCanvas.height = canvas.height = height = 480; //canvas.parentNode.clientHeight;
 };
 
 window.onresize();
