@@ -12,8 +12,9 @@
             background-color: #f1f1f1;
         }
 
+        /*
         #cont {
-            max-width: 1200px;
+            max-width: 640px;
             margin: 20px auto 0;
             position: relative;
             min-height: 1px;
@@ -23,33 +24,36 @@
             padding-bottom: 480px;
             position: relative;
             width: 100%;
-
-            overflow: hidden;
         }
+        */
+        /*canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }*/
 
         canvas {
+            height: 480px;
+            width: 800px;
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-        }
-
-        #bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            float: left;
+            -webkit-transform: translate3d(0, 0, 0);
         }
     </style>
 </head>
 <body>
     <div id="cont">
         <div id="container">
-            <canvas id="bg"></canvas>
-            <canvas id="scene"></canvas>
+            <!--<canvas id="bg"></canvas>-->
+            <!--<canvas id="scene"></canvas>-->
         </div>
+    </div>
+
+    <div style="max-width: 1000px; position: relative; margin: 20px auto; width: 640px; height: 480px;">
+        <canvas id="bg"></canvas>
+        <canvas id="scene"></canvas>
     </div>
 
     <script src="setup.js"></script>

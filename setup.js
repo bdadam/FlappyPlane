@@ -17,7 +17,7 @@ var Game = {
     x: 0,
     delta: 0,
 
-    planeColor: Math.floor(Math.random() * 4)
+    planeColor: Math.random() * 4 | 0
 };
 
 window.onresize = function() {
@@ -27,7 +27,7 @@ window.onresize = function() {
 
 window.onresize();
 
-var raf = window.requestAnimFrame = (function(){
+window.raf = window.requestAnimFrame = (function(){
     return window.requestAnimationFrame       ||
         window.webkitRequestAnimationFrame ||
         window.mozRequestAnimationFrame    ||

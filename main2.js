@@ -131,19 +131,31 @@
         baseUrl: 'TappyPlane/PNG/',
         srcList: [
             'background.png'
+//            'background_test.jpg'
         ],
 
         init: function(ctx) {
             this.img = images[this.srcList[0]];
             this.ctx = ctx;
+            this.x = 0;
+            this.n = Math.ceil(Game.width / this.img.width) + 1;
+            this.vx = 200;
+
+            this.width = this.img.width;
+            this.height = this.img.height;
         },
 
         draw: function() {
-            var n = Math.ceil(Game.width / this.img.width) + 1;
+            this.x = Math.floor(this.x - Game.delta * this.vx) % this.width;
 
-            for (var i = 0; i < n; i++) {
-                this.ctx.drawImage(this.img, i * this.img.width - (Game.x * 0.65 % this.img.width), height - this.img.height);
+            this.ctx.save();
+            this.ctx.translate(this.x, 0);
+
+            for (var i = 0; i < this.n; i++) {
+                this.ctx.drawImage(this.img, 0, 0, this.width, this.height, i * this.width, 0, this.width, this.height);
             }
+
+            this.ctx.restore();
         }
     };
 
@@ -162,6 +174,8 @@
             this.height = images[this.srcList[0]].height;
             this.ctx = ctx;
             this.n = Math.ceil(Game.width / this.width) + 1;
+            this.x = 0;
+            this.top = Game.height - this.height;
         },
 
         clear: function() {
@@ -169,11 +183,21 @@
         },
 
         draw: function() {
+            this.x = Math.floor(this.x - Game.delta * Game.vx) % this.width;
+
+            this.ctx.save();
+            this.ctx.translate(this.x, 0);
+
             for (var i = 0; i < this.n; i++) {
                 var q = Math.floor((Math.floor(Game.x / this.width) + i) / 10) % this.srcList.length;
+
+                // q buggy
+
                 var img = images[this.srcList[q]];
-                this.ctx.drawImage(img, i * this.width - (Game.x % this.width), height - this.height);
+                this.ctx.drawImage(img, i * this.width, this.top);
             }
+
+            this.ctx.restore();
         }
     };
 
@@ -250,7 +274,8 @@
     };
 
     function loadImages(callback) {
-        var objects = [Background, Plane, Ground, Rock, RockDown];
+        var objects = [Background, Ground];//, Plane, Rock, RockDown];
+
         for (var i = 0, l = objects.length; i < l; i++) {
             var obj = objects[i];
 
@@ -274,17 +299,15 @@
         }
     }
 
-    //var bgctr = document.getElementById('bg');
-
-    loadImages(function() {
+    function start() {
         Background.init(Game.bgCtx);
 
-        Rock.init(ctx);
-        RockDown.init(ctx);
-        Ground.init(ctx);
-        Plane.init(ctx);
+//        Rock.init(Game.ctx);
+//        RockDown.init(Game.ctx);
+        Ground.init(Game.ctx);
+//        Plane.init(Game.ctx);
 
-        var startTime = +new Date();
+        var startTime = window.performance.now(); //Date.now();
         var now = startTime;
         var lastNow = now;
         var vx = 350;
@@ -292,28 +315,28 @@
         var delta = 0;
         var ended = false;
 
-        var frameCount = 0;
+        Game.vx = vx;
 
         raf(function draw() {
             if (ended) {
                 return;
             }
 
-            raf(draw);
+            now = window.performance.now(); //Date.now();
+            Game.delta = delta = (now - lastNow) / 1000;
 
-            now = +new Date();
-            Game.delta = delta = (lastNow - now) / 1000;
-            Game.x = x = Math.floor((now - startTime) / 1000 * vx);
-
-            if (frameCount % 2 == 0) {
-                Background.draw(x);
-            }
+            //Game.x = x = Math.floor((now - startTime) / 1000 * vx);
+            Game.x = x = Math.floor(Game.x + delta * Game.vx);
 
 //            Game.ctx.clearRect(0, 0, width, height);
+
+            Background.draw();
+
+
 //            Rock.clear();
 
 
-            Plane.clear();
+//            Plane.clear();
             Ground.clear();
 
 
@@ -321,17 +344,20 @@
 //            RockDown.draw(x);
 
 
-            Ground.draw(x);
+            Ground.draw();
 
 
-            if (frameCount % 3) {
-                ended = Plane.detectCollision(x, delta);
-            }
-
-            Plane.draw(x, delta);
+//            if (frameCount % 30) {
+//                ended = Plane.detectCollision(x, delta);
+//            }
+//
+//            Plane.draw(x, delta);
 
             lastNow = now;
-            frameCount++;
+
+            raf(draw);
         });
-    });
+    }
+
+    loadImages(start);
 }());
