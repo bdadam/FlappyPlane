@@ -14,23 +14,28 @@
 
         #cont {
             max-width: 1200px;
-            margin: 100px auto 0;
+            margin: 20px auto 0;
             position: relative;
             min-height: 1px;
         }
 
         #container {
-            padding-bottom: 56.25%;
+            padding-bottom: 480px;
             position: relative;
+            width: 100%;
+
+            overflow: hidden;
         }
 
         canvas {
-            background-image: url(TappyPlane/PNG/background.png);
-            background-position: 0 bottom;
-            background-repeat: repeat-x;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
 
-
-            /*background-color: #D5EDF7;*/
+        #bg {
             position: absolute;
             top: 0;
             left: 0;
@@ -46,8 +51,6 @@
             <canvas id="scene"></canvas>
         </div>
     </div>
-    <!--script src="main.js"></script-->
-
 
     <script src="setup.js"></script>
     <script src="main2.js"></script>

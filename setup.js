@@ -1,14 +1,28 @@
 var canvas = document.getElementById('scene');
-var bgCanvas = document.getElementById('bg');
-
 var ctx = canvas.getContext('2d');
-var bgctx = bgCanvas.getContext('2d');
+
+var bgCanvas = document.getElementById('bg');
+var bgCtx = bgCanvas.getContext('2d');
+
 
 var width, height;
 
+var Game = {
+    canvas: canvas,
+    ctx: ctx,
+
+    bgCanvas: bgCanvas,
+    bgCtx: bgCtx,
+
+    x: 0,
+    delta: 0,
+
+    planeColor: Math.floor(Math.random() * 4)
+};
+
 window.onresize = function() {
-    bgCanvas.width = canvas.width = width = canvas.parentNode.clientWidth;
-    bgCanvas.height = canvas.height = height = 480; //canvas.parentNode.clientHeight;
+    Game.width = bgCanvas.width = canvas.width = width = canvas.parentNode.clientWidth;
+    Game.height = bgCanvas.height = canvas.height = height = canvas.parentNode.clientHeight;
 };
 
 window.onresize();
