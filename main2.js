@@ -131,7 +131,6 @@
         baseUrl: 'TappyPlane/PNG/',
         srcList: [
             'background.png'
-//            'background_test.jpg'
         ],
 
         init: function(ctx) {
@@ -139,23 +138,30 @@
             this.ctx = ctx;
             this.x = 0;
             this.n = Math.ceil(Game.width / this.img.width) + 1;
-            this.vx = 200;
+            this.vx = 90;
 
             this.width = this.img.width;
             this.height = this.img.height;
+
+            this.xWhenLastDrawn = Number.MIN_VALUE;
         },
 
         draw: function() {
             this.x = Math.floor(this.x - Game.delta * this.vx) % this.width;
 
-            this.ctx.save();
-            this.ctx.translate(this.x, 0);
+            if (Math.abs(this.x -this.xWhenLastDrawn) >= this.vx / 30 | 0) {
+                // we don't need to draw the background in every frame - 180px/s / 30fps = 6px
+                this.ctx.save();
+                this.ctx.translate(this.x, 0);
 
-            for (var i = 0; i < this.n; i++) {
-                this.ctx.drawImage(this.img, 0, 0, this.width, this.height, i * this.width, 0, this.width, this.height);
+                for (var i = 0; i < this.n; i++) {
+                    this.ctx.drawImage(this.img, 0, 0, this.width, this.height, i * this.width, 0, this.width, this.height);
+                }
+
+                this.ctx.restore();
+
+                this.xWhenLastDrawn = this.x;
             }
-
-            this.ctx.restore();
         }
     };
 
@@ -186,12 +192,12 @@
             this.x = Math.floor(this.x - Game.delta * Game.vx) % this.width;
 
             this.ctx.save();
-            this.ctx.translate(this.x, 0);
+            //this.ctx.translate(this.x, 0);
+            this.ctx.translate(-Game.x % this.width, 0);
 
             for (var i = 0; i < this.n; i++) {
-                var q = Math.floor((Math.floor(Game.x / this.width) + i) / 10) % this.srcList.length;
-
-                // q buggy
+                var q = (Math.floor((Game.x + i * this.width) / this.width)) % this.srcList.length;
+                q = Math.max(q, 0);
 
                 var img = images[this.srcList[q]];
                 this.ctx.drawImage(img, i * this.width, this.top);
@@ -329,6 +335,7 @@
             Game.x = x = Math.floor(Game.x + delta * Game.vx);
 
 //            Game.ctx.clearRect(0, 0, width, height);
+
 
             Background.draw();
 
