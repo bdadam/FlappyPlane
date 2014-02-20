@@ -176,11 +176,11 @@
         ],
 
         init: function(ctx) {
+            this.ctx = ctx;
+
             this.width = images[this.srcList[0]].width;
             this.height = images[this.srcList[0]].height;
-            this.ctx = ctx;
             this.n = Math.ceil(Game.width / this.width) + 1;
-            this.x = 0;
             this.top = Game.height - this.height;
         },
 
@@ -189,10 +189,8 @@
         },
 
         draw: function() {
-            this.x = Math.floor(this.x - Game.delta * Game.vx) % this.width;
 
             this.ctx.save();
-            //this.ctx.translate(this.x, 0);
             this.ctx.translate(-Game.x % this.width, 0);
 
             for (var i = 0; i < this.n; i++) {
