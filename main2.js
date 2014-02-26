@@ -1,41 +1,103 @@
 (function() {
-    var images = {};
-    var imagesToLoad = 0;
+    var Images = {
+        Background: {
+            baseUrl: 'TappyPlane/PNG/',
+            list: [
+                'background.png'
+            ]
+        },
+
+        Plane: {
+            baseUrl: 'TappyPlane/PNG/Planes/',
+            list: [
+                'planeBlue1.png',
+                'planeBlue2.png',
+                'planeBlue3.png',
+                'planeGreen1.png',
+                'planeGreen2.png',
+                'planeGreen3.png',
+                'planeYellow1.png',
+                'planeYellow2.png',
+                'planeYellow3.png',
+                'planeRed1.png',
+                'planeRed2.png',
+                'planeRed3.png'
+            ]
+        },
+
+        Ground: {
+            baseUrl: 'TappyPlane/PNG/',
+            list: [
+                'groundGrass.png',
+                'groundDirt.png',
+                'groundRock.png',
+                'groundSnow.png',
+                'groundIce.png'
+            ]
+        },
+
+        Rock: {
+            baseUrl: 'TappyPlane/PNG/',
+            list: [
+                'rockGrass.png',
+                'rock.png',
+                'rock.png',
+                'rockSnow.png',
+                'rockIce.png'
+            ]
+        },
+
+        RockDown: {
+            baseUrl: 'TappyPlane/PNG/',
+            list: [
+                'rockGrassDown.png',
+                'rockDown.png',
+                'rockDown.png',
+                'rockSnowDown.png',
+                'rockIceDown.png'
+            ]
+        },
+
+        load: function(fn) {
+            var imagesToLoad = 0;
+
+            for (var key in this) {
+                var obj = this[key];
+                if (obj.baseUrl && obj.list) {
+                    for (var i = 0, l = obj.list.length; i < l; i++) {
+                        imagesToLoad++;
+                        var img = new Image();
+                        obj.images = obj.images || [];
+                        obj.images.push(img);
+
+                        img.onload = function() {
+                            imagesToLoad--;
+                            if (imagesToLoad === 0) {
+                                PubSub.publish('images:loaded');
+                            }
+                        };
+
+                        img.src = obj.baseUrl + obj.list[i];
+                    }
+                }
+            }
+        }
+    };
 
     var Plane = {
-        baseUrl: 'TappyPlane/PNG/Planes/',
-        srcList: [
-            'planeBlue1.png',
-            'planeBlue2.png',
-            'planeBlue3.png',
-            'planeGreen1.png',
-            'planeGreen2.png',
-            'planeGreen3.png',
-            'planeYellow1.png',
-            'planeYellow2.png',
-            'planeYellow3.png',
-            'planeRed1.png',
-            'planeRed2.png',
-            'planeRed3.png'
-        ],
-
         x: 50,
         y: 0,
         vy: 0,
 
+        setColor: function(color) {
+            this.color = color % Images.Plane.images.length || 0;
+        },
+
         init: function(ctx) {
             this.ctx = ctx;
-
-            this.images = [
-                images[this.srcList[Game.planeColor * 3 + 0]],
-                images[this.srcList[Game.planeColor * 3 + 1]],
-                images[this.srcList[Game.planeColor * 3 + 2]]
-            ],
-
-            this.width = this.images[0].width;
-            this.height = this.images[0].height;
-
-            this.y = Math.floor(height / 2 - this.height / 2);
+            this.width = Images.Plane.images[0].width;
+            this.height = Images.Plane.images[0].height;
+            this.y = Math.floor(Game.height / 2 - this.height / 2);
 
             this.corners = [
                 [73, 0],
@@ -45,96 +107,59 @@
                 [22, 64],
                 [0, 18]
             ];
+
+            this.setColor(Math.floor(Math.random() * Images.Plane.images.length / 3));
+        },
+
+        start: function() {
+            this.setColor(Math.floor(Math.random() * Images.Plane.images.length / 3));
         },
 
         clear: function() {
             this.ctx.clearRect(this.x, this.y, this.width, this.height);
         },
 
-        draw: function(x, delta) {
+        updatePosition: function() {
             var ay = 15*9.81;
-            this.vy += ay * delta;
-            this.y = Math.floor(this.y + this.vy * delta);
+            this.vy += ay * Game.delta;
+            this.y = Math.floor(this.y + this.vy * Game.delta);
 
-            var img = this.images[Math.floor(Game.x/50) % 3];
+            if (this.y < 0) {
+                this.vy = 0;
+                this.y = 0;
+            }
 
-            this.ctx.drawImage(img, this.x, this.y);
+            var offset = this.color * 3;
+            var d = [0, 1, 2, 1];
+            this.img = Images.Plane.images[offset + d[Math.floor(Game.x / 40) % 4]];
         },
 
-        detectCollision: function(x, delta) {
-            if (this.y < 0 || this.y > height - this.height) {
-                return true;
-            }
+        draw: function() {
+            this.ctx.drawImage(this.img, this.x, this.y);
+        },
 
-            var data = this.ctx.getImageData(this.x, this.y, this.width, this.height);
-
+        collidesWithPoint: function() {
             for (var i = 0, l = this.corners.length; i < l; i++) {
                 var corner = this.corners[i];
-                var k = corner[1] * data.width * 4 + corner[0] * 4;
 
-                var pixel = [
-                    data.data[k],
-                    data.data[k + 1],
-                    data.data[k + 2],
-                    data.data[k + 3]
-                ];
+                var x = this.x + corner[0];
+                var y = this.y + corner[1];
 
-                if (pixel[0] !== 0 || pixel[1] !== 0 || pixel[2] !== 0 || pixel[3] !== 0) {
+                if (Ground.collidesWithPoint(x, y) || RockHandler.collidesWithPoint(x, y)) {
+                    PubSub.publish('plane:crash', { x: x, y: y });
                     return true;
                 }
             }
-
-
-            return;
-            //var cornersToCheck =[];
-
-            // ground
-            if (this.y + this.height >= height - Ground.height) {
-                for (var i = 0, l = this.corners.length; i < l; i++) {
-                    var corner = this.corners[i];
-                    if (this.y + corner[1] <= height - Ground.height) {
-                        continue;
-                    }
-
-                    var pixel = this.ctx.getImageData(this.x + corner[0], this.y + corner[1], 1, 1).data;
-
-                    if (pixel[0] !== 0 || pixel[1] !== 0 || pixel[2] !== 0 || pixel[3] !== 0) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-
-//            if (this.y + this.height < height - Ground.height) {
-//                return;
-//            }
-
-            for (var i = 0, l = this.corners.length; i < l; i++) {
-                var corner = this.corners[i];
-                var pixel = ctx.getImageData(this.x + corner[0], this.y + corner[1], 1, 1).data;
-
-                if (pixel[0] !== 0 || pixel[1] !== 0 || pixel[2] !== 0 || pixel[3] !== 0) {
-                    return true;
-                }
-            }
-
-            return false;
         }
     };
 
-    addEventListener(document, 'click', function() {
-        Plane.vy += 100;
+    window.addEventListener('click', function() {
+        Plane.vy -= 100;
     });
 
     var Background = {
-        baseUrl: 'TappyPlane/PNG/',
-        srcList: [
-            'background.png'
-        ],
-
         init: function(ctx) {
-            this.img = images[this.srcList[0]];
+            this.img = Images.Background.images[0];
             this.ctx = ctx;
             this.x = 0;
             this.n = Math.ceil(Game.width / this.img.width) + 1;
@@ -144,10 +169,12 @@
             this.height = this.img.height;
 
             this.xWhenLastDrawn = Number.MIN_VALUE;
+
+            this.ctx.globalAlpha = 0.7;
         },
 
         draw: function() {
-            this.x = Math.floor(this.x - Game.delta * this.vx) % this.width;
+            this.x = -(Game.elapsed * this.vx) % this.width;
 
             if (Math.abs(this.x -this.xWhenLastDrawn) >= this.vx / 30 | 0) {
                 // we don't need to draw the background in every frame - 180px/s / 30fps = 6px
@@ -166,203 +193,223 @@
     };
 
     var Ground = {
-        baseUrl: 'TappyPlane/PNG/',
-        srcList: [
-            'groundGrass.png',
-            'groundDirt.png',
-            'groundRock.png',
-            'groundSnow.png',
-            'groundIce.png'
-        ],
-
         init: function(ctx) {
             this.ctx = ctx;
-
-            this.width = images[this.srcList[0]].width;
-            this.height = images[this.srcList[0]].height;
+            this.width = Images.Ground.images[0].width;
+            this.height = Images.Ground.images[0].height;
             this.n = Math.ceil(Game.width / this.width) + 1;
             this.top = Game.height - this.height;
+
+            this.heights = Helper.calcHeights(Images.Ground.images[0]); //this.calcHeights();
         },
 
         clear: function() {
-            this.ctx.clearRect(0, height - this.height, width, this.height);
+            this.ctx.clearRect(0, this.top, Game.width, this.height);
+        },
+
+        getTerrainTypeForX: function(x) {
+            return Math.floor(x / this.width / 5) % Images.Ground.images.length;
         },
 
         draw: function() {
-
-            this.ctx.save();
-            this.ctx.translate(-Game.x % this.width, 0);
+            var dx = -Game.x % this.width;
 
             for (var i = 0; i < this.n; i++) {
-                var q = (Math.floor((Game.x + i * this.width) / this.width)) % this.srcList.length;
-                q = Math.max(q, 0);
+                var q = this.getTerrainTypeForX(Game.x + i * this.width);
+                var img = Images.Ground.images[q];
 
-                var img = images[this.srcList[q]];
-                this.ctx.drawImage(img, i * this.width, this.top);
-            }
-
-            this.ctx.restore();
-        }
-    };
-
-    var Rock = {
-        baseUrl: 'TappyPlane/PNG/',
-        srcList: [
-            'rock.png',
-            'rockGrass.png',
-            'rockIce.png',
-            'rockSnow.png'
-        ],
-
-        lastRockDrawn: 0,
-        activeRocks: [],
-
-        init: function(ctx) {
-            this.ctx = ctx;
-        },
-
-        clear: function() {
-            for (var i = 0, l = this.activeRocks.length; i < l; i++) {
-                var rock = this.activeRocks[i];
-
-                this.ctx.clearRect(rock[0] - x, height - rock[2], rock[1].width, rock[1].height);
+                this.ctx.drawImage(img, dx + i * this.width, this.top);
             }
         },
 
-        draw: function(x) {
-            if (x - this.lastRockDrawn > 450) {
-                var img = images[this.srcList[Math.floor(Math.random() * this.srcList.length)]];
-                var rx = x + width + Math.floor(Math.random() * 320);
-                var h = img.height - Math.floor((Math.random() * 120));
-                this.activeRocks.push([rx, img, h]);
-                this.lastRockDrawn = x;
-            }
+        calcHeights: function() {
+            var q = [];
+            var c = document.createElement('canvas');
+            var img = Images.Ground.images[0];
+            c.width = img.width;
+            c.height = img.height;
 
-            for (var i = 0, l = this.activeRocks.length; i < l; i++) {
-                var rock = this.activeRocks[i];
-                this.ctx.drawImage(rock[1], rock[0] - x, height - rock[2]);
-            }
-        }
-    };
+            var ctx = c.getContext('2d');
 
-    var RockDown = {
-        baseUrl: 'TappyPlane/PNG/',
-        srcList: [
-            'rockDown.png',
-            'rockGrassDown.png',
-            'rockIceDown.png',
-            'rockSnowDown.png'
-        ],
+            ctx.clearRect(0, 0, img.width, img.height);
+            ctx.drawImage(img, 0, 0);
 
-        lastRockDrawn: 0,
-        activeRocks: [],
+            var d = ctx.getImageData(0, 0, img.width, img.height);
+            var data = d.data;
+            var w = d.width;
+            var h = d.height;
 
-        init: function(ctx) {
-            this.ctx = ctx;
-        },
+            for (var x = 0; x < w; x++) {
+                q[x] = h;
+                for (var y = 0; y < h; y++) {
+                    var s = data[y * w * 4 + x * 4 + 3];
 
-        draw: function(x) {
-            if (x - this.lastRockDrawn > 650) {
-                var img = images[this.srcList[Math.floor(Math.random() * this.srcList.length)]];
-                var rx = x + width + Math.floor(Math.random() * 320);
-                var h = 0 - Math.floor((Math.random() * 320));
-                this.activeRocks.push([rx, img, h]);
-                this.lastRockDrawn = x;
-            }
-
-            for (var i = 0, l = this.activeRocks.length; i < l; i++) {
-                var rock = this.activeRocks[i];
-                this.ctx.drawImage(rock[1], rock[0] - x, rock[2]);
-            }
-        }
-    };
-
-    function loadImages(callback) {
-        var objects = [Background, Ground];//, Plane, Rock, RockDown];
-
-        for (var i = 0, l = objects.length; i < l; i++) {
-            var obj = objects[i];
-
-            for (var j = 0, jl = obj.srcList.length; j < jl; j++) {
-                var src = obj.srcList[j];
-                images[src] = new Image();
-                images[src].onload = function() {
-                    imagesToLoad -= 1;
-
-                    if (imagesToLoad === 0) {
-                        callback();
+                    if (s === 0) {
+                        q[x] = h - y;
                     }
-                };
-                images[src].onerror = function() {
-                    // error
-                };
-
-                imagesToLoad += 1;
-                images[src].src = obj.baseUrl + src;
+                }
             }
+
+            return q;
+        },
+
+        collidesWithPoint: function(x, y) {
+            var imgX = (x + Game.x) % this.width;
+            return Game.height - this.heights[imgX] <= y;
         }
-    }
+    };
+
+    var Rock = function(ctx) {
+        this.ctx = ctx;
+
+        Rock.heights = Rock.heights || Helper.calcHeights(Images.Rock.images[0]);
+
+        Object.defineProperty(this, 'visible', {
+            get: function() {
+                return this.x + this.img.width >= 0;
+            }
+        });
+    };
+
+    Rock.prototype.init = function(x, up) {
+        this.up = up !== false;
+        this.x = x;
+
+        var images = this.up ? Images.Rock.images : Images.RockDown.images;
+        this.img = images[Ground.getTerrainTypeForX(Game.x + this.x)];
+
+        var dy = Math.random() * this.img.height | 0;
+
+        this.y = up ? (Game.height - this.img.height + dy) | 0 : 0 - dy;
+    };
+
+    Rock.prototype.collidesWithPoint = function(x, y) {
+        if (this.x - Game.x <= x && this.x - Game.x + this.img.width > x) {
+            var h = Rock.heights[Game.x + x - this.x];
+
+            return this.up ? (this.y + this.img.height - h < y) : y <= this.y + h;
+        }
+
+        return false;
+    };
+
+    Rock.prototype.clear = function() {
+        if (!this.visible) {
+            return;
+        }
+
+        if (this.up) {
+            this.ctx.clearRect(this.x - Game.x, this.y, this.img.width, this.img.height);
+        } else {
+            this.ctx.clearRect(this.x - Game.x, 0, this.img.width, this.img.height);
+        }
+    };
+
+    Rock.prototype.draw = function() {
+        if (!this.visible) {
+            return;
+        }
+
+        this.ctx.drawImage(this.img, this.x - Game.x, this.y);
+    };
+
+    (function() {
+        var lastRock = 0;
+        var rocks = [];
+        var ctx;
+
+        window.RockHandler = {
+            init: function(context) {
+                ctx = context;
+            },
+
+            do: function() {
+                if (Math.random() < 0.04) {
+                    var rock = new Rock(ctx);
+                    rock.init(Game.x + Game.width, Math.random() < 0.5);
+                    rocks.push(rock);
+                    lastRock = Game.x + Game.width;
+                }
+            },
+
+            collidesWithPoint: function(x, y) {
+                return rocks.some(function(rock) {
+                    return rock.collidesWithPoint(x, y);
+                });
+                /*rocks.forEach(function(rock) {
+                    if (rock.collidesWithPoint(x, y)) {
+                        return true;
+                    }
+                });*/
+            },
+
+            clear: function() {
+                rocks.forEach(function(rock) {
+                    rock.clear();
+                });
+            },
+
+            draw: function() {
+                rocks.forEach(function(rock) {
+                    rock.draw();
+                });
+            }
+        };
+    }());
 
     function start() {
         Background.init(Game.bgCtx);
-
-//        Rock.init(Game.ctx);
-//        RockDown.init(Game.ctx);
         Ground.init(Game.ctx);
-//        Plane.init(Game.ctx);
+        Plane.init(Game.ctx);
+        RockHandler.init(Game.ctx);
 
-        var startTime = window.performance.now(); //Date.now();
-        var now = startTime;
-        var lastNow = now;
-        var vx = 350;
-        var x = 0;
-        var delta = 0;
         var ended = false;
 
-        Game.vx = vx;
+        function clear() {
+//            Game.ctx.clearRect(0, 0, Game.width, Game.height);
+//            return;
 
-        raf(function draw() {
+            Plane.clear();
+            Ground.clear();
+            RockHandler.clear();
+        }
+
+        function loop() {
             if (ended) {
                 return;
             }
 
-            now = window.performance.now(); //Date.now();
-            Game.delta = delta = (now - lastNow) / 1000;
+            raf(loop);
 
-            //Game.x = x = Math.floor((now - startTime) / 1000 * vx);
-            Game.x = x = Math.floor(Game.x + delta * Game.vx);
+            RockHandler.do();
 
-//            Game.ctx.clearRect(0, 0, width, height);
+            clear();
 
+            Game.ping();
 
             Background.draw();
-
-
-//            Rock.clear();
-
-
-//            Plane.clear();
-            Ground.clear();
-
-
-//            Rock.draw(x);
-//            RockDown.draw(x);
-
-
+            RockHandler.draw();
             Ground.draw();
 
+            Plane.updatePosition();
+            ended = Plane.collidesWithPoint();
+            Plane.draw();
+        };
 
-//            if (frameCount % 30) {
-//                ended = Plane.detectCollision(x, delta);
-//            }
-//
-//            Plane.draw(x, delta);
-
-            lastNow = now;
-
-            raf(draw);
-        });
+        raf(loop);
     }
 
-    loadImages(start);
+    PubSub.subscribe('images:loaded', function() {
+        Game.start();
+        start();
+    });
+
+    PubSub.subscribe('plane:crash', function(point) {
+        console.log(point);
+        Game.ctx.beginPath();
+        Game.ctx.arc(point.x, point.y, 10, 0, Math.PI*2, true);
+        Game.ctx.fill();
+    });
+
+    Images.load();
 }());

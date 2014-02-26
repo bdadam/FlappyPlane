@@ -9,53 +9,40 @@
         body {
             padding: 0;
             margin: 0;
-            background-color: #f1f1f1;
-        }
-
-        /*
-        #cont {
-            max-width: 640px;
-            margin: 20px auto 0;
-            position: relative;
-            min-height: 1px;
+            background-color: #fff;
         }
 
         #container {
-            padding-bottom: 480px;
             position: relative;
-            width: 100%;
+            max-width: 1200px;
+            margin: 20px auto;
         }
-        */
-        /*canvas {
+
+        #inner {
+            position: relative;
+            padding-bottom: 480px;
+        }
+
+        canvas {
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-        }*/
-
-        canvas {
-            height: 480px;
-            width: 800px;
-            position: absolute;
-            float: left;
-            -webkit-transform: translate3d(0, 0, 0);
         }
     </style>
 </head>
 <body>
-    <div id="cont">
-        <div id="container">
-            <!--<canvas id="bg"></canvas>-->
-            <!--<canvas id="scene"></canvas>-->
+    <div id="container">
+        <div id="inner">
+            <canvas id="bg"></canvas>
+            <canvas id="scene"></canvas>
         </div>
     </div>
 
-    <div style="max-width: 1000px; position: relative; margin: 20px auto; width: 640px; height: 480px;">
-        <canvas id="bg"></canvas>
-        <canvas id="scene"></canvas>
-    </div>
+    <p id="score"></p>
 
+    <script src="pubsub.min.js"></script>
     <script src="setup.js"></script>
     <script src="main2.js"></script>
 </body>
